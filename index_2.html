@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
+    <link rel="icon" href="img/arcgis-icon.jpg">
+    <title>ArcGIS</title>
+
+    <!-- THIS IS THE STYLESHEET OF THE MAP. -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.11/esri/css/main.css">
+
+    <!-- THE LIBRARIES OF JAVASCRIPT WE NEED WHEN USEING ARCGIS -->
+    <script src="https://js.arcgis.com/4.11/"></script>
+
+</head>
+<body>     
+<header>
+    <h1>Hello Using ArcGIS !</h1>
+</header>
+<br> <br>
+<select id="services"> Services </select>
+<br /> <hr /> <br />
+<div id="mapview" style="width:700px;height:500px"></div>
+<br><br>
+<div id="toc"></div>
+
+<script>
+    /* GLOBAL VARIABLES THAT UE CAN USE LATTER */
+    let map;
+    let mapview;
+    let layer;
+    let legend;
+
+    require(["esri/Map", "esri/views/MapView", "esri/request", "esri/layers/MapImageLayer", "esri/widgets/Legend"],
+     function(Map, MapView, Request, MapImageLayer, Legend) {
+       
+        map = new Map({basemap: "streets"});
+        mapview = new MapView({ 
+
+          container: "mapview",
+           map: map,
+           center: [-73.935, 40.730],
+           zoom: 11,
+           scale: 6000             
+     });
+
+    legend = new Legend({
+
+       view: mapview
+});
+mapview.ui.add(legend, "bottom-left");
+     
+     let url = "https://sampleserver6.arcgisonline.com/arcgis/rest/services?f=pjson";
+     let options = {responseType: "json"};
+
+     Request(url, options).then((response) => {
+
+        let result = response.data;
+        let listservices = document.getElementById('services');
+        listservices.addEventListener("change", function() {
+
+         let selectedService = listservices.options[listservices.selectedIndex].textContent;
+
+         layer = new MapImageLayer({
+
+         url: "https://sampleserver6.arcgisonline.com/arcgis/rest/services" + selectedService +"/FeatureServer"
+     });
+        map.removeAll();
+        map.add(layer);
+
+        layer.when(function(){
+
+        let toc = document.getElementById("toc");
+        for(let i = 0; i < layer.sublayers.length; i++) {
+
+            let sublayers = layer.sublayers.items[i];
+            let chk = document.createElement("input");
+            chk.type = "checkbox";
+            chk.value = sublayers.id;
+            chk.checked = sublayers.visible;
+
+            chk.addEventListener("click", function(e) {
+
+                findSublayerById(e.target.value).v = e.target.checked;
+            });
+
+            let lbl = document.createElement("label");
+            lbl.textContent = sublayers.title;
+
+            toc.appendChild(chk);
+            toc.appendChild(lbl);
+        }
+
+        mapview.goTo(layer.fullExtent);
+    });
+        
+        });
+         for(let i = 0; i < result.services.length; i++) {
+
+            let option = document.createElement("option");
+            option.textContent = result.services[i].name;
+            listservices.appendChild(option);
+         }
+          
+     }).catch((err) => {
+
+         alert(err);
+     });
+
+    }); 
+</script>
+</body>
+</html>
